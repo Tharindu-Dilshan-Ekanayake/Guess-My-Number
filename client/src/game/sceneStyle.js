@@ -19,11 +19,11 @@ export const SKY = {
   exponent: 0.3,
 }
 
-/** Just a light haze at the far end of the track. */
+/** Haze at the horizon. Distances scale with the quality preset's view distance. */
 export const FOG = {
   color: SKY.horizon,
-  near: 120,
-  far: 420,
+  /** Fraction of the view distance where the haze starts. */
+  nearFraction: 0.3,
 }
 
 export const CLOUDS = {
@@ -32,6 +32,11 @@ export const CLOUDS = {
   /** Undersides, a cool blue-grey. */
   bottom: '#cfdff2',
   count: 18,
+}
+
+/** The sea around the island; fog at the horizon blends it into the sky. */
+export const OCEAN = {
+  color: '#2bbff2',
 }
 
 /** Neon lime baseplate, two shades in a checker. */

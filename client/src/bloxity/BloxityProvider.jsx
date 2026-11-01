@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 import { BloxityContext } from './BloxityContext'
-import { getSDK, safeCall, toUnsubscribe, waitForSDK } from './sdk'
+import { GAME_SLUG, initPlatform, platform, usePlatform } from './platform'
+import { getSDK, safeCall, toUnsubscribe } from './sdk'
 import { DEFAULT_PROPORTIONS, useBloxityStore } from './store'
-
-/**
- * `Legion.SDK.init()` must happen exactly once per page, but React 19 StrictMode
- * mounts effects twice in dev. A module-level latch (rather than a ref) is what
- * actually survives that double mount.
- */
-let initPromise = null
 
 /** Slots the SDK's equipped payload carries beyond the skin. */
 const PART_ID_KEYS = [
@@ -34,34 +28,6 @@ function isResetSentinel(equipped) {
 }
 
 /**
- * Bloxity's real endpoints.
- *
- * These MUST be passed explicitly. If `init()` receives neither `apiUrl` nor
- * `portalUrl`, the SDK checks whether it is running on localhost/127.0.0.1 and, if
- * so, silently repoints BOTH at `window.location.origin` - i.e. at the Vite dev
- * server. `showAuthPopup()` then opens `http://localhost:5173/auth?popup=1`, Vite's
- * SPA fallback serves the game again inside the popup, no token is ever posted back,
- * and login can never succeed. That fallback is meant for people running the whole
- * Bloxity portal locally; for game development it has to be overridden.
- */
-const PORTAL_URL = import.meta.env.VITE_BLOXITY_PORTAL_URL || 'https://bloxity.io'
-const API_URL = import.meta.env.VITE_BLOXITY_API_URL || 'https://api.bloxity.io'
-
-function initOnce(gameSlug, signal) {
-  if (!initPromise) {
-    initPromise = waitForSDK({ signal }).then((sdk) => {
-      sdk.init({ gameSlug, apiUrl: API_URL, portalUrl: PORTAL_URL })
-      return sdk
-    })
-    // A failed init shouldn't poison every later attempt (e.g. HMR reload).
-    initPromise.catch(() => {
-      initPromise = null
-    })
-  }
-  return initPromise
-}
-
-/**
  * Owns the whole Bloxity session lifecycle: waits for the SDK script, initialises it
  * once, and subscribes to the auth/avatar change streams. Those subscriptions are the
  * single source of truth — nothing here polls `getUser()`.
@@ -69,9 +35,9 @@ function initOnce(gameSlug, signal) {
  * @param {{ gameSlug?: string, children: React.ReactNode }} props
  */
 export function BloxityProvider({ gameSlug, children }) {
-  // >>> FILL ME IN <<< Set VITE_GAME_SLUG in client/.env to the slug from your
-  // Bloxity developer dashboard. The `gameSlug` prop overrides it if passed.
-  const slug = gameSlug || import.meta.env.VITE_GAME_SLUG || 'MY_GAME_SLUG'
+  // The slug lives in shared/gameData.json (VITE_GAME_SLUG overrides it).
+  const slug = gameSlug || GAME_SLUG
+  const embedded = usePlatform((s) => s.embedded)
 
   const status = useBloxityStore((s) => s.status)
   const error = useBloxityStore((s) => s.error)
@@ -83,21 +49,13 @@ export function BloxityProvider({ gameSlug, children }) {
   const sdkRef = useRef(null)
 
   useEffect(() => {
-    if (slug === 'MY_GAME_SLUG') {
-      console.warn(
-        '[bloxity] VITE_GAME_SLUG is still the placeholder "MY_GAME_SLUG". ' +
-          'Set it in client/.env before testing a real login.',
-      )
-    }
-
-    const controller = new AbortController()
     const store = useBloxityStore.getState()
     const unsubscribers = []
     let cancelled = false
 
     store.setStatus('loading')
 
-    initOnce(slug, controller.signal)
+    initPlatform(slug)
       .then((sdk) => {
         if (cancelled) return
         sdkRef.current = sdk
@@ -174,11 +132,12 @@ export function BloxityProvider({ gameSlug, children }) {
 
     return () => {
       cancelled = true
-      controller.abort()
       unsubscribers.forEach((fn) => safeCall(fn))
     }
   }, [slug])
 
+  // Inside Bloxity the toolbar handles accounts: the game never shows its own
+  // Log in / Log out there, and never calls these.
   const login = useCallback(() => {
     const sdk = sdkRef.current || getSDK()
     if (!sdk) {
@@ -199,10 +158,10 @@ export function BloxityProvider({ gameSlug, children }) {
   // `window.Legion` directly.
   const game = useMemo(
     () => ({
-      loadingStep: (label) =>
-        safeCall((sdkRef.current || getSDK())?.game?.loadingStep, label),
-      loadingEnd: () => safeCall((sdkRef.current || getSDK())?.game?.loadingEnd),
-      updateRoom: (room) => safeCall((sdkRef.current || getSDK())?.game?.updateRoom, room),
+      loadingStep: platform.loadingStep,
+      loadingEnd: platform.loadingEnd,
+      gameplayStart: platform.gameplayStart,
+      updateRoom: platform.updateRoom,
     }),
     [],
   )
@@ -219,12 +178,14 @@ export function BloxityProvider({ gameSlug, children }) {
       identity: user || guest,
       login,
       logout,
+      /** Show Log in / Log out only when this is false. */
+      embedded,
       avatar: equipped,
       proportions: proportions || DEFAULT_PROPORTIONS,
       game,
       gameSlug: slug,
     }),
-    [status, error, user, guest, equipped, proportions, login, logout, game, slug],
+    [status, error, user, guest, equipped, proportions, login, logout, embedded, game, slug],
   )
 
   return <BloxityContext.Provider value={value}>{children}</BloxityContext.Provider>
