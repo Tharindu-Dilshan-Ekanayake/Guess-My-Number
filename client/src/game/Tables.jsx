@@ -330,7 +330,7 @@ function useCardTexture(label, text, color) {
 
 /**
  * The two number cards at the player's own table: their number on their card, "?"
- * (or the revealed number) on the opponent's. Nobody else's cards show anything,
+ * on the opponent's. Nobody else's cards show anything,
  * so this is never more than two extra draw calls.
  */
 function SeatPapers() {
@@ -338,9 +338,9 @@ function SeatPapers() {
   const playing = match && match.phase !== 'waiting' && match.phase !== 'countdown'
 
   const mine = playing && match.myNumber != null ? String(match.myNumber) : ''
-  const theirs = playing && match.phase !== 'choosing' ? String(match.revealed ?? '?') : ''
+  const theirs = playing && match.phase !== 'choosing' ? '?' : ''
   const myTex = useCardTexture('YOUR NUMBER', mine, '#1d4ed8')
-  const theirTex = useCardTexture('THEIR NUMBER', theirs, match?.revealed != null ? '#7c3aed' : '#dc2626')
+  const theirTex = useCardTexture('THEIR NUMBER', theirs, '#dc2626')
 
   // On the front face of the card, a hair in front of it.
   const geometry = useDisposable(

@@ -549,7 +549,7 @@ const HELP_STEPS = [
   ['🤔', 'Pick a secret number', 'When a second player sits down, you both pick a number from 1 to 100. Keep it secret!'],
   ['🎯', 'Take turns guessing', "Guess your opponent's number. After each guess you see HIGHER ⬆ or LOWER ⬇. Wrong numbers get crossed out."],
   ['🏆', 'First to guess wins', `Guess right first to win $${DATA.winReward}. Even if you lose, you get $${DATA.lossReward} and XP for playing.`],
-  ['❓', 'Need help?', `Use a Hint ($${DATA.powers.hint}) to narrow it down, or Reveal ($${DATA.powers.reveal}) to see their number.`],
+  ['🤖', 'Nobody to play?', 'Sit at a table and tap PLAY BOT. A practice bot joins you (half rewards, no leaderboard points).'],
   ['⭐', 'Level up', 'Every duel gives XP. Each new level pays cash, and some unlock cool titles for your name.'],
   ['📜', 'Quests & gifts', 'Finish 3 daily quests, open a free gift every 10 minutes, and claim your daily reward.'],
   ['🛍️', 'Spend your cash', 'Buy chairs and thrones, glowing auras, titles and emotes in the Shop. Show them off!'],

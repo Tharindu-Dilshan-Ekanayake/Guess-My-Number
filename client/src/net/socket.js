@@ -47,8 +47,12 @@ const GIVE_UP_MS = 60000
 const INITIAL_SYNC_MS = 1500
 /** The server's close code when this account joined from another window. */
 const KICKED_REPLACED = 4100
+/** The server's close code when it removed us for being away. */
+const KICKED_AFK = 4200
 /** Consented leave (we called room.leave()). */
 const CONSENTED = 4000
+/** At most one "I'm here" message per this long while the player is touching the screen. */
+const ACTIVITY_PING_MS = 4000
 
 let room = null
 /** Matchmaker relay room the current room was reached through (hosting only). */
@@ -88,6 +92,27 @@ async function endpointFor() {
   if (import.meta.env.DEV) return { url: `${window.location.protocol}//${window.location.hostname}:3000` }
   return { url: window.location.origin }
 }
+
+/**
+ * Any tap, click or key press tells the server we're here (it only sees movement
+ * otherwise, and a player looking around or reading a menu isn't moving). It also
+ * dismisses the "Still there?" countdown at once.
+ */
+let lastActivityPing = 0
+function reportActivity() {
+  const { status, afkWarnUntil } = useGame.getState()
+  if (!room || status !== 'online') return
+  const now = performance.now()
+  if (afkWarnUntil) useGame.setState({ afkWarnUntil: 0 })
+  if (afkWarnUntil || now - lastActivityPing > ACTIVITY_PING_MS) {
+    lastActivityPing = now
+    room.send('active')
+  }
+}
+for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, reportActivity, { passive: true })
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) reportActivity()
+})
 
 /** Sends `{ t: type, ...payload }` to the room; dropped while not connected. */
 export function send(msg) {
@@ -297,8 +322,10 @@ function attach(r) {
     clearInterval(posTimer)
     platform.updateRoom('')
     resetWorld()
-    useGame.setState({ status: 'offline' })
-    if (code === KICKED_REPLACED || code === CONSENTED) return
+    // Removed for being away: stay out until the player chooses to come back, rather
+    // than rejoining at once and taking the slot we just freed.
+    useGame.setState({ status: code === KICKED_AFK ? 'afk' : 'offline', afkWarnUntil: 0 })
+    if (code === KICKED_REPLACED || code === KICKED_AFK || code === CONSENTED) return
     // Closed unexpectedly (e.g. its pod is being replaced): resolve again and rejoin.
     scheduleRejoin()
   })
@@ -461,7 +488,6 @@ function playToastSound(text) {
   if (/not enough|need \$|busy|full|walk closer|already|too slow|out of time/i.test(text)) sfx.error()
   else if (/bought|unlocked|claimed/i.test(text)) sfx.buy()
   else if (/quest complete|gift|reward|streak/i.test(text)) sfx.reward()
-  else if (/hint|their number is/i.test(text)) sfx.turn()
 }
 
 const handlers = {
@@ -520,6 +546,11 @@ const handlers = {
 
   bubble(msg) {
     setBubble(msg.id, msg.text)
+  },
+
+  /** The server will remove us soon unless we do something. */
+  afkWarn(msg) {
+    useGame.setState({ afkWarnUntil: Date.now() + msg.inMs })
   },
 
   toast(msg) {

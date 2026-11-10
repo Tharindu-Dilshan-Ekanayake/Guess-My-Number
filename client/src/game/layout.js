@@ -53,11 +53,10 @@ export const TREES = [
  * on, the walk up from spawn, and the floors of the two shops.
  */
 export const PATHS = [
-  [0, 1, 46, 22],
+  [0, -6.5, 46, 37],
   [0, 19, 5, 14],
   [26.5, 0, 8.6, 26],
   [-26.5, 1, 6, 10],
-  [0, -16, 22, 4],
 ]
 
 /** A rug under each desk and its two chairs: [x, z, width, depth]. */

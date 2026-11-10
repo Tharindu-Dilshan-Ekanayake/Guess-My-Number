@@ -38,6 +38,16 @@
     ]
   },
   "roomSize": 20,
+  "afk": {
+    "warnSeconds": 60,
+    "kickSeconds": 90
+  },
+  "bots": {
+    "enabled": true,
+    "maxBots": 10,
+    "rewardScale": 0.5,
+    "names": ["Max", "Luna", "Zed", "Mira", "Kai", "Nova", "Rex", "Pip", "Juno", "Otto", "Remy", "Skye"]
+  },
   "numberMin": 1,
   "numberMax": 100,
   "winReward": 200,
@@ -71,7 +81,12 @@
     { "id": 7, "x": -8.5, "z": 6 },
     { "id": 8, "x": 0, "z": 6 },
     { "id": 9, "x": 8.5, "z": 6 },
-    { "id": 10, "x": 17, "z": 6 }
+    { "id": 10, "x": 17, "z": 6 },
+    { "id": 11, "x": -17, "z": -14 },
+    { "id": 12, "x": -8.5, "z": -14 },
+    { "id": 13, "x": 0, "z": -14 },
+    { "id": 14, "x": 8.5, "z": -14 },
+    { "id": 15, "x": 17, "z": -14 }
   ],
   "leaderboards": [
     {
@@ -79,26 +94,26 @@
       "title": "TOP LEVELS ⭐",
       "format": "level",
       "x": -18,
-      "z": -16
+      "z": -24.5
     },
     {
       "id": "streaks",
       "title": "TOP STREAKS 🔥",
       "x": -6,
-      "z": -16
+      "z": -24.5
     },
     {
       "id": "wins",
       "title": "TOP WINS 🏆",
       "x": 6,
-      "z": -16
+      "z": -24.5
     },
     {
       "id": "playtime",
       "title": "MOST PLAYED ⏱️",
       "format": "duration",
       "x": 18,
-      "z": -16
+      "z": -24.5
     }
   ],
   "emoteShop": {
@@ -338,10 +353,6 @@
       "lol"
     ]
   },
-  "powers": {
-    "hint": 150,
-    "reveal": 600
-  },
   "quests": [
     {
       "id": "play3",
@@ -391,13 +402,6 @@
       "event": "emote",
       "goal": 5,
       "reward": 250
-    },
-    {
-      "id": "hint1",
-      "label": "Use a Hint",
-      "event": "hint",
-      "goal": 1,
-      "reward": 200
     }
   ],
   "gift": {

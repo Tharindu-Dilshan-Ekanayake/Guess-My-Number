@@ -19,8 +19,7 @@ const isValidNumber = (n) => Number.isInteger(n) && n >= MIN && n <= MAX
  *   ended     - result on screen; both players are stood up when it runs out
  *
  * The server holds both secrets. A client only ever learns its own number, the range
- * its guesses have narrowed the opponent's down to, and the opponent's number if it
- * paid to reveal it.
+ * its guesses have narrowed the opponent's down to.
  */
 class Table {
   /**
@@ -55,7 +54,6 @@ class Table {
     this.turn = 0
     /** Seat index of the winner once the duel has ended, else -1. */
     this.winner = -1
-    this.revealed = [false, false]
     this.timeouts = [0, 0]
     /** True between a guess and its answer, so a second guess can't sneak in. */
     this.pending = false
@@ -176,36 +174,6 @@ class Table {
     this.seats.forEach((s, i) => s?.send('duel', { t, mine: i === by, ...rest }))
   }
 
-  /** Paid power-ups. Returns an error string, or null on success. */
-  power(session, kind, now) {
-    const i = this.seatOf(session)
-    if (i < 0 || this.phase !== 'guessing') return 'Power-ups work during guessing'
-    const cost = DATA.powers[kind]
-    if (cost === undefined) return 'Unknown power-up'
-    if (session.profile.cash < cost) return `You need $${cost}`
-
-    if (kind === 'hint') {
-      const [lo, hi] = this.ranges[i]
-      const width = hi - lo + 1
-      if (width <= 3) return 'Already narrowed down!'
-      const secret = this.secrets[1 - i]
-      const span = Math.max(3, Math.ceil(width / 4))
-      const start = randomInt(Math.max(lo, secret - span + 1), Math.min(secret, hi - span + 1))
-      this.ranges[i] = [start, start + span - 1]
-      session.toast(`Hint: it's between ${start} and ${start + span - 1}`)
-    } else if (kind === 'reveal') {
-      if (this.revealed[i]) return 'Already revealed'
-      this.revealed[i] = true
-      session.toast(`Their number is ${this.secrets[1 - i]} 👀`)
-    }
-    if (kind === 'hint') this.room.questEvent(session, 'hint', now)
-
-    session.profile.cash -= cost
-    session.pushProfile(now)
-    this.sync(now)
-    return null
-  }
-
   startChoosing(now) {
     this.phase = 'choosing'
     this.endsAt = now + T.choose * 1000
@@ -235,9 +203,11 @@ class Table {
     const loser = this.seats[l]
     let reward = 0
 
-    if (winner) reward = this.room.recordWin(winner, this.guesses[w], now)
+    // A practice match (against a bot) pays less and doesn't count for the boards.
+    const vsBot = Boolean(winner?.isBot || loser?.isBot)
+    if (winner) reward = this.room.recordWin(winner, this.guesses[w], now, vsBot)
     let consolation = 0
-    if (loser) consolation = this.room.recordLoss(loser, now, reason)
+    if (loser) consolation = this.room.recordLoss(loser, now, reason, vsBot)
     if (loser) this.room.bubble(loser, 'NOOO! 💀')
     if (winner) this.room.bubble(winner, reason === 'forfeit' ? 'GG 👍' : 'Got it! 😎')
 
@@ -313,7 +283,6 @@ class Table {
       myHistory: this.history[i],
       theirHistory: this.history[o],
       won: this.phase === 'ended' && this.winner === i,
-      revealed: this.revealed[i] ? this.secrets[o] : null,
       opponent: this.seats[o]?.id ?? null,
       opponentReady: this.secrets[o] !== null,
     }

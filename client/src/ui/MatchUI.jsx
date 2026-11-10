@@ -37,19 +37,18 @@ function LeaveButton({ label = 'Leave', forfeit = false }) {
   )
 }
 
-function PowerButton({ icon, label, price, disabled, onClick }) {
+/** "Play Bot": a practice opponent for a player waiting alone. It only comes when asked. */
+function BotButton() {
   return (
     <button
       type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className="btn-3d press flex flex-1 items-center justify-center gap-2 bg-gradient-to-b from-[#4fd8ff] to-[#2a7bff] px-2 py-1.5 text-white disabled:opacity-45"
+      onClick={() => {
+        sfx.click()
+        send({ t: 'bot' })
+      }}
+      className="btn-3d press pointer-events-auto bg-gradient-to-b from-[#b07dff] to-[#6a3ee8] px-4 py-1.5 text-base font-bold text-white"
     >
-      <span className="text-2xl leading-none">{icon}</span>
-      <span className="flex flex-col items-start leading-tight">
-        <span className="stroke-thin text-sm font-bold">{label}</span>
-        <span className="stroke-thin text-xs font-bold text-[#c8ffc8]">{money(price)}</span>
-      </span>
+      <span className="stroke-thin">🤖 Play Bot</span>
     </button>
   )
 }
@@ -249,37 +248,9 @@ function DuelBar({ match, now }) {
   )
 }
 
-/** Paid helpers, shown under the guess grid. */
-function PowerButtons({ match }) {
-  const cash = useGame((s) => s.profile?.cash ?? 0)
-  const use = (kind) => {
-    sfx.click()
-    send({ t: 'power', kind })
-  }
-  const revealed = match.revealed != null
-  return (
-    <div className="mt-2 flex w-full gap-2">
-      <PowerButton
-        icon="❓"
-        label="HINT"
-        price={DATA.powers.hint}
-        disabled={revealed || match.range[1] - match.range[0] < 3 || cash < DATA.powers.hint}
-        onClick={() => use('hint')}
-      />
-      <PowerButton
-        icon="🔍"
-        label="REVEAL"
-        price={DATA.powers.reveal}
-        disabled={revealed || cash < DATA.powers.reveal}
-        onClick={() => use('reveal')}
-      />
-    </div>
-  )
-}
-
 /**
  * The 1-100 grid: pick a secret number, or guess the opponent's. Numbers the
- * Higher/Lower answers (or a hint) have ruled out are greyed and crossed out.
+ * Higher/Lower answers have ruled out are greyed and crossed out.
  */
 function NumberGrid({ match, mode }) {
   const { blur } = useSettings()
@@ -321,9 +292,7 @@ function NumberGrid({ match, mode }) {
         <p className="mb-2 mt-0.5 w-full text-sm font-semibold text-white/80">
           {mode === 'choose'
             ? 'Your opponent will try to guess it'
-            : match.revealed != null
-              ? `Their number is ${match.revealed}!`
-              : `It's between ${lo} and ${hi}`}
+            : `It's between ${lo} and ${hi}`}
         </p>
         {mode === 'guess' && (
           <div className="mb-2 w-full">
@@ -353,7 +322,6 @@ function NumberGrid({ match, mode }) {
             )
           })}
         </div>
-        {mode === 'guess' && <PowerButtons match={match} />}
       </div>
     </div>
   )
@@ -465,7 +433,10 @@ export function MatchUI() {
       {match?.phase === 'waiting' && (
         <div className="pointer-events-none absolute bottom-[16%] left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2">
           <span className="stroke-text whitespace-nowrap text-2xl font-bold text-white">Waiting for an opponent… (1/2)</span>
-          <LeaveButton />
+          <div className="flex items-center gap-3">
+            <BotButton />
+            <LeaveButton />
+          </div>
         </div>
       )}
 

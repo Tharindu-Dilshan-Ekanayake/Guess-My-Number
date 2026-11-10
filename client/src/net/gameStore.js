@@ -11,7 +11,10 @@ let toastId = 0
 
 export const useGame = create((set, get) => ({
   /** 'connecting' | 'online' | 'offline' */
+  /** 'connecting' | 'online' | 'offline' | 'failed' | 'afk' (removed for being away) */
   status: 'connecting',
+  /** When the "Still there?" countdown ends (server removes an idle player then); 0 = none. */
+  afkWarnUntil: 0,
   selfId: null,
   roomId: null,
   capacity: 20,
