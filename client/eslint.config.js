@@ -18,4 +18,10 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // three.js objects (meshes, textures, the renderer) are mutated imperatively by
+    // design. This rule targets the React Compiler, which this project doesn't use.
+    files: ['src/game/**/*.{js,jsx}'],
+    rules: { 'react-hooks/immutability': 'off' },
+  },
 ])

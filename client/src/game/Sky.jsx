@@ -5,16 +5,22 @@ import {
   BufferAttribute,
   Color,
   IcosahedronGeometry,
+  Matrix4,
+  MeshBasicMaterial,
+  Quaternion,
   Triangle,
   Vector3,
 } from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
+import { useSettings } from './quality'
 import { CLOUDS, LIGHTS, SKY } from './sceneStyle'
+import { useDisposable } from './useDisposable'
 
 const SKY_RADIUS = 450
 
-/** Centre of the cloud field: the middle of the track. */
-const CLOUD_CENTER = [0, 0, -80]
+/** Centre of the cloud field: the middle of the island. */
+const CLOUD_CENTER = [0, 0, 0]
 /** Radians per second the whole cloud field turns about its centre. */
 const CLOUD_DRIFT = 0.004
 
@@ -176,37 +182,61 @@ function buildCloudLayout(count) {
   return clouds
 }
 
+/**
+ * Bakes every puff of every cloud into one geometry, so the whole cloud field is a
+ * single draw call instead of one per puff (~90).
+ */
+function buildCloudGeometry(count) {
+  const puff = createPuffGeometry()
+  const parts = []
+  const cloudMatrix = new Matrix4()
+  const puffMatrix = new Matrix4()
+  const q = new Quaternion()
+  const up = new Vector3(0, 1, 0)
+  const unit = new Vector3(1, 1, 1)
+
+  for (const cloud of buildCloudLayout(count)) {
+    cloudMatrix.compose(
+      new Vector3(...cloud.position),
+      q.setFromAxisAngle(up, cloud.rotationY),
+      unit,
+    )
+    for (const p of cloud.puffs) {
+      puffMatrix.compose(new Vector3(...p.position), new Quaternion(), new Vector3(...p.scale))
+      parts.push(puff.clone().applyMatrix4(cloudMatrix.clone().multiply(puffMatrix)))
+    }
+  }
+
+  const merged = mergeGeometries(parts)
+  puff.dispose()
+  for (const g of parts) g.dispose()
+  return merged
+}
+
 function Clouds() {
   const ref = useRef(null)
-  const geometry = useMemo(() => createPuffGeometry(), [])
-  const layout = useMemo(() => buildCloudLayout(CLOUDS.count), [])
+  const { clouds } = useSettings()
+  const geometry = useDisposable(() => buildCloudGeometry(clouds), [clouds])
+  // fog off: the clouds sit past the fog's far distance and would vanish.
+  const material = useDisposable(() => new MeshBasicMaterial({ vertexColors: true, fog: false }), [])
 
   useFrame((_state, delta) => {
     if (ref.current) ref.current.rotation.y += delta * CLOUD_DRIFT
   })
 
-  return (
-    <group ref={ref} position={CLOUD_CENTER}>
-      {layout.map((cloud, i) => (
-        <group key={i} position={cloud.position} rotation={[0, cloud.rotationY, 0]}>
-          {cloud.puffs.map((puff, p) => (
-            <mesh key={p} geometry={geometry} position={puff.position} scale={puff.scale}>
-              {/* fog off: the clouds sit past the fog's far distance and would vanish. */}
-              <meshBasicMaterial vertexColors fog={false} />
-            </mesh>
-          ))}
-        </group>
-      ))}
-    </group>
-  )
+  return <mesh ref={ref} geometry={geometry} material={material} position={CLOUD_CENTER} />
 }
 
-/** Gradient sky plus drifting low-poly clouds. */
-export function Sky() {
+/** Gradient sky plus drifting low-poly clouds (held back until the game is playable). */
+export function Sky({ clouds = 'on' }) {
   return (
     <>
       <SkyDome />
-      <Clouds />
+      {clouds !== 'off' && (
+        <group visible={clouds === 'on'}>
+          <Clouds />
+        </group>
+      )}
     </>
   )
 }
