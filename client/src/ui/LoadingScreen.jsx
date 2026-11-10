@@ -12,6 +12,7 @@ import { useGame } from '../net/gameStore'
 export function LoadingScreen() {
   const { progress } = useProgress()
   const status = useGame((s) => s.status)
+  const waking = useGame((s) => s.serverWaking)
   return (
     <div className="absolute inset-0 z-[70] flex flex-col items-center justify-center gap-5 bg-gradient-to-b from-[#2a8af5] to-[#86c8fb] px-6">
       <h1 className="stroke-text text-center text-[3.6rem] font-bold leading-none text-white">
@@ -34,7 +35,11 @@ export function LoadingScreen() {
         </div>
       ) : (
         <p className="stroke-thin text-center text-lg font-bold text-white/90">
-          {status === 'online' ? 'Getting the lobby ready…' : 'Connecting to the game server…'}
+          {status === 'online'
+            ? 'Getting the lobby ready…'
+            : waking
+              ? 'Waking up the game server… (a few seconds for the first player)'
+              : 'Connecting to the game server…'}
         </p>
       )}
       <p className="stroke-thin text-center text-base font-bold text-white/70">💀 Guess correctly or else you LOSE!</p>

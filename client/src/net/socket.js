@@ -79,7 +79,7 @@ const toWs = (url) => url.replace(/^http/i, 'ws')
 async function endpointFor() {
   if (viaMatchmaker()) {
     const resolved = await platform.resolveEndpoint(HOSTING_ID, { userId: hello?.userId })
-    if (resolved.cold) useGame.getState().pushToast('Waking up a server…')
+    if (resolved.cold) useGame.setState({ serverWaking: true })
     return { url: resolved.endpoint, relayRoomId: resolved.roomId }
   }
   if (import.meta.env.VITE_SERVER_URL) return { url: import.meta.env.VITE_SERVER_URL }
@@ -495,6 +495,7 @@ const handlers = {
     clockOffset = msg.serverNow - Date.now()
     useGame.setState({
       status: 'online',
+      serverWaking: false,
       capacity: msg.capacity,
       profile: withProfileDeadlines(msg.profile),
       lb: msg.lb,
