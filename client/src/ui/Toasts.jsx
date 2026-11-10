@@ -44,6 +44,7 @@ function AfkRemoved() {
 export function Toasts() {
   const toasts = useGame((s) => s.toasts)
   const status = useGame((s) => s.status)
+  const waking = useGame((s) => s.serverWaking)
   return (
     <>
       {status === 'afk' && <AfkRemoved />}
@@ -64,7 +65,11 @@ export function Toasts() {
           status !== 'online' &&
           status !== 'afk' && (
             <div className="ui-panel px-4 py-1.5 text-base font-bold text-[#ffd23d]">
-              {status === 'connecting' ? 'Connecting to server…' : 'Reconnecting…'}
+              {status === 'connecting'
+                ? waking
+                  ? 'Waking up the game server… hang tight!'
+                  : 'Connecting to server…'
+                : 'Reconnecting…'}
             </div>
           )
         )}

@@ -13,6 +13,8 @@ export const useGame = create((set, get) => ({
   /** 'connecting' | 'online' | 'offline' */
   /** 'connecting' | 'online' | 'offline' | 'failed' | 'afk' (removed for being away) */
   status: 'connecting',
+  /** The matchmaker is starting a game server (nobody was playing): the first join takes longer. */
+  serverWaking: false,
   /** When the "Still there?" countdown ends (server removes an idle player then); 0 = none. */
   afkWarnUntil: 0,
   selfId: null,

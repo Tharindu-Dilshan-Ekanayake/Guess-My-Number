@@ -1,4 +1,3 @@
-import { useProgress } from '@react-three/drei'
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 
 import { platform, setAdScreen, usePlatform } from './bloxity/platform'
@@ -59,36 +58,30 @@ function useEscapeMenu() {
   }, [])
 }
 
-/** Longest we hold the loading screen for the other players' avatars to finish loading. */
-const AVATAR_WAIT_MAX_MS = 6000
-/** How long three's loaders must stay quiet before we call the avatars loaded. */
-const AVATAR_QUIET_MS = 350
+/**
+ * After the scene is drawn, the longest the loading screen waits for the server. A
+ * hosted server that was asleep can take much longer to wake; past this the lobby
+ * opens anyway, with a "connecting" notice on top, instead of a frozen loading screen.
+ */
+const CONNECT_WAIT_MAX_MS = 1500
 
 /**
- * True once the lobby is really ready to play: the scene is drawn, the game server is
- * connected, and the avatars of the players already there have loaded, so nobody
- * pops in half-built just after the game appears. Without a connection the loading
- * screen stays up (and says so); the avatar wait is capped so a slow download can
- * never keep a player out.
+ * True once the lobby can be shown: the scene is drawn and the server is connected, or
+ * the short wait for it ran out. Once open it stays open (a later reconnect shows a
+ * notice, never the loading screen again). Other players' avatars are not waited for:
+ * they appear as they finish loading.
  */
 function useLobbyReady(sceneReady) {
   const online = useGame((s) => s.status === 'online')
-  const { active } = useProgress()
-  const [released, setReleased] = useState(false)
+  const [opened, setOpened] = useState(false)
 
   useEffect(() => {
-    if (released || !sceneReady || !online) return undefined
-    const id = setTimeout(() => setReleased(true), AVATAR_WAIT_MAX_MS)
+    if (opened || !sceneReady) return undefined
+    const id = setTimeout(() => setOpened(true), online ? 0 : CONNECT_WAIT_MAX_MS)
     return () => clearTimeout(id)
-  }, [released, sceneReady, online])
+  }, [opened, sceneReady, online])
 
-  useEffect(() => {
-    if (released || !sceneReady || !online || active) return undefined
-    const id = setTimeout(() => setReleased(true), AVATAR_QUIET_MS)
-    return () => clearTimeout(id)
-  }, [released, sceneReady, online, active])
-
-  return released
+  return opened
 }
 
 function App() {
