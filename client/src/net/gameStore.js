@@ -42,7 +42,8 @@ export const useGame = create((set, get) => ({
   reveal: null,
   /** Level-up celebration: { level, reward, title, until }. */
   levelUp: null,
-  emotesOpen: true,
+  /** The quick-phrase list under the duel: folded away until the player opens it. */
+  emotesOpen: false,
 
   openModal: (modal, shopTab) => set({ modal, ...(shopTab ? { shopTab } : {}) }),
   closeModal: () => set({ modal: null }),

@@ -352,6 +352,8 @@ function EmotePanel({ hiddenInPortrait }) {
                   onClick={() => {
                     sfx.pop()
                     send({ t: 'emote', id })
+                    // Fold the list away again: one tap, one phrase.
+                    useGame.setState({ emotesOpen: false })
                   }}
                   className="btn-3d press flex items-center justify-between bg-gradient-to-b from-[#fff35c] to-[#f2c200] px-2 py-1"
                 >

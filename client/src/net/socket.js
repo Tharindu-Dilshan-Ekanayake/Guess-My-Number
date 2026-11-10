@@ -514,6 +514,8 @@ const handlers = {
       if (next.phase === 'choosing' && prev.phase !== 'choosing') sfx.go()
       if (next.myTurn && !prev.myTurn) sfx.turn()
     }
+    // Every duel starts with the emote list folded away.
+    if (next && !prev) useGame.setState({ emotesOpen: false })
     useGame.setState({ match: next })
   },
 
